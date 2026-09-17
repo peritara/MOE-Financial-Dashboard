@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSS Financial Management & Monitoring Dashboard — Kiribati MOE</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .active-tab { border-bottom: 3px solid #2563EB; color: #2563EB; font-weight: 700; }
+        .badge-danger { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+        .badge-warning { background-color: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+        .badge-success { background-color: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+        .badge-info { background-color: #E0F2FE; color: #075985; border: 1px solid #7DD3FC; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 antialiased min-h-screen">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg font-bold text-lg">SSS</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">School Support Services (SSS) Division</h1>
+                    <p class="text-xs text-slate-300">Ministry of Education, Kiribati — Financial Management & Monitoring System (2026)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs bg-slate-800 px-3 py-1.5 rounded-md border border-slate-700">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Data Source: 2026 Master Ledger Reconciliation</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- Global Interactive Filters -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Global Filters & Drill-down Options</h2>
+                <button onclick="resetFilters()" class="text-xs text-blue-600 hover:text-blue-800 font-medium underline">Reset Filters</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Budget Category</label>
+                    <select id="filterCategory" onchange="applyFilters()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">All Categories</option>
+                        <option value="Personal Emolument">Personal Emolument</option>
+                        <option value="Operational">Operational</option>
+                        <option value="Other Commitment">Other Commitment</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Funding Source</label>
+                    <select id="filterSource" onchange="applyFilters()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">All Funding Sources</option>
+                        <option value="1101 Government of Kiribati">1101 Government of Kiribati</option>
+                        <option value="2101 Government of Kiribati">2101 Government of Kiribati</option>
+                        <option value="3101 Government of Kiribati">3101 Government of Kiribati</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Execution Status</label>
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">All Statuses</option>
+                        <option value="EXCEEDED">Requires Attention (Overbudget)</option>
+                        <option value="COMMITTED">Has Active Commitments (PO/PR)</option>
+                        <option value="NORMAL">Normal Execution</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Search Line Item</label>
+                    <input type="text" id="filterSearch" onkeyup="applyFilters()" placeholder="Search description or code..." class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Cards Summary -->
+        <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-slate-600">
+                <p class="text-xs font-medium text-gray-500">Approved Budget</p>
+                <p class="text-lg font-bold text-gray-900 mt-1" id="kpiApproved">$0.00</p>
+                <p class="text-[10px] text-gray-400 mt-0.5" id="kpiOriginal">Orig: $0.00</p>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-600">
+                <p class="text-xs font-medium text-gray-500">Actual Expenditure</p>
+                <p class="text-lg font-bold text-blue-700 mt-1" id="kpiActual">$0.00</p>
+                <p class="text-[10px] text-blue-500 mt-0.5">Paid Vouchers</p>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-amber-500">
+                <p class="text-xs font-medium text-gray-500">Open Commitments</p>
+                <p class="text-lg font-bold text-amber-700 mt-1" id="kpiCommitments">$0.00</p>
+                <p class="text-[10px] text-amber-600 mt-0.5" id="kpiCommitmentBreakdown">PO: $0 | PR: $0</p>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-indigo-600">
+                <p class="text-xs font-medium text-gray-500">Total Encumbered</p>
+                <p class="text-lg font-bold text-indigo-800 mt-1" id="kpiTotalExp">$0.00</p>
+                <p class="text-[10px] text-gray-400 mt-0.5">Actuals + Commitments</p>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-emerald-600">
+                <p class="text-xs font-medium text-gray-500">Available Balance</p>
+                <p class="text-lg font-bold text-emerald-700 mt-1" id="kpiBalance">$0.00</p>
+                <p class="text-[10px] text-emerald-600 mt-0.5">Uncommitted Budget</p>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-purple-600">
+                <p class="text-xs font-medium text-gray-500">Budget Utilisation</p>
+                <p class="text-lg font-bold text-purple-700 mt-1" id="kpiUtilisation">0.0%</p>
+                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1.5">
+                    <div id="kpiProgressBar" class="bg-purple-600 h-1.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Automated Management Exception & Priority Flags -->
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Action Items & Exception Alerts (Requires Management Follow-up)
+            </h2>
+            <div id="alertContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <!-- Alerts populated dynamically -->
+            </div>
+        </section>
+
+        <!-- Visualization Panel -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Budget vs Expenditure by Category</h3>
+                    <span class="text-[10px] text-gray-400">Answers: Where are major funds allocated?</span>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Expenditure Distribution Share</h3>
+                    <span class="text-[10px] text-gray-400">Answers: What proportion goes to commitments?</span>
+                </div>
+                <div class="relative h-64 flex justify-center">
+                    <canvas id="shareChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Views Navigation Tabs -->
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="border-b border-gray-200 bg-gray-50 px-4 pt-3 flex gap-4 overflow-x-auto">
+                <button onclick="switchTab('ledgerTab')" id="tab-ledgerTab" class="pb-2 text-xs font-semibold text-gray-600 active-tab">All SSS Budget Lines (25 Lines)</button>
+                <button onclick="switchTab('grantsTab')" id="tab-grantsTab" class="pb-2 text-xs font-semibold text-gray-600">Grants & Mission Fees (CEDAK)</button>
+                <button onclick="switchTab('scholarshipsTab')" id="tab-scholarshipsTab" class="pb-2 text-xs font-semibold text-gray-600">Scholarships & Tertiary Support</button>
+            </div>
+
+            <!-- Tab 1: Full Budget Ledger -->
+            <div id="content-ledgerTab" class="tab-content p-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-600">
+                        <thead class="bg-gray-100 text-gray-700 uppercase font-bold text-[11px] border-b border-gray-200">
+                            <tr>
+                                <th class="p-2.5">Code</th>
+                                <th class="p-2.5">Coding Description</th>
+                                <th class="p-2.5">Category</th>
+                                <th class="p-2.5">Source</th>
+                                <th class="p-2.5 text-right">Revised Budget</th>
+                                <th class="p-2.5 text-right">Actuals</th>
+                                <th class="p-2.5 text-right">Commitments</th>
+                                <th class="p-2.5 text-right">Total Exp.</th>
+                                <th class="p-2.5 text-right">Balance</th>
+                                <th class="p-2.5 text-center">Status Flag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerTableBody" class="divide-y divide-gray-200">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: Mission School Fees & Grants Focus -->
+            <div id="content-grantsTab" class="tab-content p-4 hidden">
+                <p class="text-xs text-gray-500 mb-3">Monitoring transfers to CEDAK and school fee subsidies for secondary mission schools.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-600">
+                        <thead class="bg-gray-100 text-gray-700 uppercase font-bold text-[11px] border-b border-gray-200">
+                            <tr>
+                                <th class="p-2.5">Code</th>
+                                <th class="p-2.5">Program / Commitment</th>
+                                <th class="p-2.5 text-right">Approved Allocation</th>
+                                <th class="p-2.5 text-right">Disbursed Grant</th>
+                                <th class="p-2.5 text-right">Remaining Fund</th>
+                                <th class="p-2.5 text-center">Utilisation %</th>
+                                <th class="p-2.5 text-center">Action / Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="grantsTableBody" class="divide-y divide-gray-200">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Scholarship & Allowance Focus -->
+            <div id="content-scholarshipsTab" class="tab-content p-4 hidden">
+                <p class="text-xs text-gray-500 mb-3">Monitoring Tertiary In-Country, Overseas Scholarships, and Local Tertiary Support.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-600">
+                        <thead class="bg-gray-100 text-gray-700 uppercase font-bold text-[11px] border-b border-gray-200">
+                            <tr>
+                                <th class="p-2.5">Code</th>
+                                <th class="p-2.5">Scholarship Category</th>
+                                <th class="p-2.5 text-right">Revised Budget</th>
+                                <th class="p-2.5 text-right">Paid Allowances</th>
+                                <th class="p-2.5 text-right">Pending PR/PO</th>
+                                <th class="p-2.5 text-right">Available Balance</th>
+                                <th class="p-2.5 text-center">Utilisation %</th>
+                                <th class="p-2.5 text-center">Status Flag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scholarshipTableBody" class="divide-y divide-gray-200">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Embedded SSS Data Engine & Application Logic -->
+    <script>
+        // Exact 25 Master Ledger Records from verified 2026 SSS Dataset
+        const masterDataset = [
+            { code: 211111, desc: "Salaries", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 3386925.62, rev: 3386925.62, actual: 2229982.67, po: 0.00, pr: 0.00, sumExp: 2229982.67, bal: 1156942.95 },
+            { code: 211113, desc: "Housing Assistance", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 6444.00, rev: 6444.00, actual: 3222.00, po: 0.00, pr: 0.00, sumExp: 3222.00, bal: 3222.00 },
+            { code: 211114, desc: "Allowances", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 7075.00, rev: 7075.00, actual: 3625.00, po: 0.00, pr: 0.00, sumExp: 3625.00, bal: 3450.00 },
+            { code: 211116, desc: "Temporary Assistance", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 2522.52, rev: 2522.52, actual: 37311.82, po: 0.00, pr: 0.00, sumExp: 37311.82, bal: -34789.30 },
+            { code: 211117, desc: "Leave Grants", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 519000.00, rev: 519000.00, actual: 441011.54, po: 0.00, pr: 0.00, sumExp: 441011.54, bal: 77988.46 },
+            { code: 212111, desc: "KPF Contributions (Unfunded)", cat: "Personal Emolument", src: "1101 Government of Kiribati", orig: 0.00, rev: 0.00, actual: 0.00, po: 0.00, pr: 0.00, sumExp: 0.00, bal: 0.00 },
+            { code: 212111, desc: "KPF Contributions", cat: "Personal Emolument", src: "2101 Government of Kiribati", orig: 254208.61, rev: 254208.61, actual: 169179.85, po: 0.00, pr: 0.00, sumExp: 169179.85, bal: 85028.76 },
+            { code: 222118, desc: "Repairs and Maintenance- Equipment", cat: "Operational", src: "1101 Government of Kiribati", orig: 1500.00, rev: 1500.00, actual: 0.00, po: 0.00, pr: 0.00, sumExp: 0.00, bal: 1500.00 },
+            { code: 227112, desc: "Fuel", cat: "Operational", src: "1101 Government of Kiribati", orig: 3640.00, rev: 3640.00, actual: 2692.53, po: 0.00, pr: 0.00, sumExp: 2692.53, bal: 947.47 },
+            { code: 227211, desc: "Int Travel - Local Airfares/ Shipfares", cat: "Operational", src: "1101 Government of Kiribati", orig: 41185.00, rev: 35485.00, actual: 33557.94, po: 0.00, pr: 0.00, sumExp: 33557.94, bal: 1927.06 },
+            { code: 227213, desc: "Int. Travel- Misc Incidental (Part 1)", cat: "Operational", src: "1101 Government of Kiribati", orig: 0.00, rev: 552.00, actual: 297.00, po: 0.00, pr: 0.00, sumExp: 297.00, bal: 255.00 },
+            { code: 227213, desc: "Int. Travel- Misc Incidental (Part 2)", cat: "Operational", src: "1101 Government of Kiribati", orig: 0.00, rev: 448.00, actual: 0.00, po: 0.00, pr: 0.00, sumExp: 0.00, bal: 448.00 },
+            { code: 227311, desc: "External Travel- Per Diem", cat: "Operational", src: "1101 Government of Kiribati", orig: 15565.00, rev: 15565.00, actual: 13386.68, po: 0.00, pr: 0.00, sumExp: 13386.68, bal: 2178.32 },
+            { code: 227312, desc: "External Travel- Airfare", cat: "Operational", src: "1101 Government of Kiribati", orig: 0.00, rev: 3000.00, actual: 0.00, po: 0.00, pr: 0.00, sumExp: 0.00, bal: 3000.00 },
+            { code: 228112, desc: "Local Per Diems", cat: "Operational", src: "1101 Government of Kiribati", orig: 500.00, rev: 2200.00, actual: 2198.00, po: 0.00, pr: 0.00, sumExp: 2198.00, bal: 2.00 },
+            { code: 228211, desc: "Local Training- Catering", cat: "Operational", src: "1101 Government of Kiribati", orig: 4420.00, rev: 4420.00, actual: 4418.00, po: 0.00, pr: 0.00, sumExp: 4418.00, bal: 2.00 },
+            { code: 228299, desc: "Local Training- Workshops and Seminars", cat: "Operational", src: "1101 Government of Kiribati", orig: 5761.00, rev: 5761.00, actual: 5732.50, po: 0.00, pr: 0.00, sumExp: 5732.50, bal: 28.50 },
+            { code: 229112, desc: "Local Stationery and Supplies", cat: "Operational", src: "1101 Government of Kiribati", orig: 1702.00, rev: 1702.00, actual: 883.13, po: 0.00, pr: 0.00, sumExp: 883.13, bal: 818.87 },
+            { code: 229811, desc: "Purchase of Office Equip, Furniture & Software", cat: "Operational", src: "1101 Government of Kiribati", orig: 1200.00, rev: 1200.00, actual: 0.00, po: 0.00, pr: 0.00, sumExp: 0.00, bal: 1200.00 },
+            { code: 251125, desc: "Subsidy for School fees", cat: "Other Commitment", src: "1101 Government of Kiribati", orig: 6500000.00, rev: 6500000.00, actual: 5153290.43, po: 0.00, pr: 0.00, sumExp: 5153290.43, bal: 1346709.57 },
+            { code: 263112, desc: "Grant- Secondary Mission Schools (Repatriation/CEDAK)", cat: "Other Commitment", src: "1101 Government of Kiribati", orig: 5000000.00, rev: 5000000.00, actual: 2970412.50, po: 0.00, pr: 0.00, sumExp: 2970412.50, bal: 2029587.50 },
+            { code: 272142, desc: "In-Country Tertiary Support (Local)", cat: "Other Commitment", src: "1101 Government of Kiribati", orig: 800000.00, rev: 800000.00, actual: 624982.24, po: 4500.00, pr: 0.00, sumExp: 629482.24, bal: 170517.76 },
+            { code: 282151, desc: "USP Contribution", cat: "Other Commitment", src: "1101 Government of Kiribati", orig: 1125980.00, rev: 1125980.00, actual: 790057.05, po: 0.00, pr: 0.00, sumExp: 790057.05, bal: 335922.95 },
+            { code: 272143, desc: "Tertiary Scholarships Overseas", cat: "Other Commitment", src: "3101 Government of Kiribati", orig: 0.00, rev: 11042253.02, actual: 10285221.76, po: 0.00, pr: 4910.00, sumExp: 10290131.76, bal: 752121.26 },
+            { code: 272143, desc: "Tertiary In-Country", cat: "Other Commitment", src: "3101 Government of Kiribati", orig: 0.00, rev: 1100000.00, actual: 955678.12, po: 0.00, pr: 0.00, sumExp: 955678.12, bal: 144321.88 }
+        ];
+
+        let catChart = null;
+        let shareChart = null;
+
+        function fmt(num) {
+            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function applyFilters() {
+            const cat = document.getElementById('filterCategory').value;
+            const src = document.getElementById('filterSource').value;
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+
+            const filtered = masterDataset.filter(item => {
+                if (cat !== 'ALL' && item.cat !== cat) return false;
+                if (src !== 'ALL' && item.src !== src) return false;
+                if (search && !item.desc.toLowerCase().includes(search) && !String(item.code).includes(search)) return false;
+                
+                if (status === 'EXCEEDED' && item.bal >= 0) return false;
+                if (status === 'COMMITTED' && (item.po === 0 && item.pr === 0)) return false;
+                if (status === 'NORMAL' && (item.bal < 0 || item.po > 0 || item.pr > 0)) return false;
+
+                return true;
+            });
+
+            updateDashboard(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterCategory').value = 'ALL';
+            document.getElementById('filterSource').value = 'ALL';
+            document.getElementById('filterStatus').value = 'ALL';
+            document.getElementById('filterSearch').value = '';
+            applyFilters();
+        }
+
+        function updateDashboard(data) {
+            // Aggregate KPIs
+            const totalOrig = data.reduce((s, i) => s + i.orig, 0);
+            const totalRev = data.reduce((s, i) => s + i.rev, 0);
+            const totalActual = data.reduce((s, i) => s + i.actual, 0);
+            const totalPo = data.reduce((s, i) => s + i.po, 0);
+            const totalPr = data.reduce((s, i) => s + i.pr, 0);
+            const totalCommitments = totalPo + totalPr;
+            const totalSumExp = data.reduce((s, i) => s + i.sumExp, 0);
+            const totalBal = data.reduce((s, i) => s + i.bal, 0);
+            const utilPct = totalRev > 0 ? (totalSumExp / totalRev) * 100 : 0;
+
+            // Render KPIs
+            document.getElementById('kpiApproved').innerText = fmt(totalRev);
+            document.getElementById('kpiOriginal').innerText = 'Orig: ' + fmt(totalOrig);
+            document.getElementById('kpiActual').innerText = fmt(totalActual);
+            document.getElementById('kpiCommitments').innerText = fmt(totalCommitments);
+            document.getElementById('kpiCommitmentBreakdown').innerText = `PO: ${fmt(totalPo)} | PR: ${fmt(totalPr)}`;
+            document.getElementById('kpiTotalExp').innerText = fmt(totalSumExp);
+            document.getElementById('kpiBalance').innerText = fmt(totalBal);
+            document.getElementById('kpiUtilisation').innerText = utilPct.toFixed(1) + '%';
+            document.getElementById('kpiProgressBar').style.width = Math.min(utilPct, 100) + '%';
+
+            // Populate Alerts & Priority Items
+            renderAlerts(data);
+
+            // Render Charts
+            renderCharts(data);
+
+            // Render Tables
+            renderTables(data);
+        }
+
+        function renderAlerts(data) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = '';
+
+            const overbudget = data.filter(i => i.bal < 0);
+            const committed = data.filter(i => i.po > 0 || i.pr > 0);
+            const zeroBudgetSpent = data.filter(i => i.rev === 0 && i.actual > 0);
+
+            let alertCount = 0;
+
+            overbudget.forEach(item => {
+                alertCount++;
+                container.innerHTML += `
+                    <div class="badge-danger p-3 rounded-lg text-xs">
+                        <div class="flex justify-between items-center font-bold mb-1">
+                            <span>Code ${item.code} — Budget Exceeded</span>
+                            <span class="text-[10px] bg-red-200 text-red-900 px-1.5 py-0.5 rounded">Action Required</span>
+                        </div>
+                        <p><strong>${item.desc}:</strong> Spent ${fmt(item.actual)} against budget of ${fmt(item.rev)}. Current Deficit: <strong>${fmt(item.bal)}</strong>.</p>
+                        <p class="mt-1 text-[10px] italic">Recommendation: Issue budget re-allocation (virement) prior to further warrant approvals.</p>
+                    </div>`;
+            });
+
+            committed.forEach(item => {
+                alertCount++;
+                container.innerHTML += `
+                    <div class="badge-warning p-3 rounded-lg text-xs">
+                        <div class="flex justify-between items-center font-bold mb-1">
+                            <span>Code ${item.code} — Outstanding Commitment</span>
+                            <span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">Pending Clearance</span>
+                        </div>
+                        <p><strong>${item.desc}:</strong> Has active commitments (PO: ${fmt(item.po)}, PR: ${fmt(item.pr)}). Total: <strong>${fmt(item.po + item.pr)}</strong>.</p>
+                        <p class="mt-1 text-[10px] italic">Recommendation: Accounts officer to verify vendor invoice and process final voucher clearing.</p>
+                    </div>`;
+            });
+
+            if (alertCount === 0) {
+                container.innerHTML = `<div class="col-span-full badge-success p-3 rounded-lg text-xs font-semibold text-center">No immediate exception flags found for the selected filter set.</div>`;
+            }
+        }
+
+        function renderCharts(data) {
+            const categories = [...new Set(data.map(i => i.cat))];
+            const budgetByCat = categories.map(c => data.filter(i => i.cat === c).reduce((s, i) => s + i.rev, 0));
+            const actualByCat = categories.map(c => data.filter(i => i.cat === c).reduce((s, i) => s + i.sumExp, 0));
+
+            if (catChart) catChart.destroy();
+            if (shareChart) shareChart.destroy();
+
+            const ctx1 = document.getElementById('categoryChart').getContext('2d');
+            catChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [
+                        { label: 'Approved Budget', data: budgetByCat, backgroundColor: '#3B82F6' },
+                        { label: 'Total Encumbered', data: actualByCat, backgroundColor: '#6366F1' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const ctx2 = document.getElementById('shareChart').getContext('2d');
+            shareChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Actual Paid', 'Open Commitments (PO/PR)', 'Available Balance'],
+                    datasets: [{
+                        data: [
+                            data.reduce((s, i) => s + i.actual, 0),
+                            data.reduce((s, i) => s + i.po + i.pr, 0),
+                            Math.max(0, data.reduce((s, i) => s + i.bal, 0))
+                        ],
+                        backgroundColor: ['#2563EB', '#F59E0B', '#10B981']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function renderTables(data) {
+            // 1. Full Ledger Table
+            const ledgerTbody = document.getElementById('ledgerTableBody');
+            ledgerTbody.innerHTML = '';
+            data.forEach(i => {
+                let statusBadge = '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-semibold">On Track</span>';
+                if (i.bal < 0) {
+                    statusBadge = '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">Deficit Flag</span>';
+                } else if (i.po > 0 || i.pr > 0) {
+                    statusBadge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-semibold">Committed</span>';
+                }
+
+                ledgerTbody.innerHTML += `<tr class="hover:bg-gray-50">
+                    <td class="p-2.5 font-bold text-gray-800">${i.code}</td>
+                    <td class="p-2.5 font-medium">${i.desc}</td>
+                    <td class="p-2.5 text-gray-500">${i.cat}</td>
+                    <td class="p-2.5 text-gray-500 text-[10px]">${i.src}</td>
+                    <td class="p-2.5 text-right font-medium">${fmt(i.rev)}</td>
+                    <td class="p-2.5 text-right">${fmt(i.actual)}</td>
+                    <td class="p-2.5 text-right">${fmt(i.po + i.pr)}</td>
+                    <td class="p-2.5 text-right font-semibold">${fmt(i.sumExp)}</td>
+                    <td class="p-2.5 text-right font-bold ${i.bal < 0 ? 'text-red-600' : 'text-emerald-700'}">${fmt(i.bal)}</td>
+                    <td class="p-2.5 text-center">${statusBadge}</td>
+                </tr>`;
+            });
+
+            // 2. Grants & Mission Fees Table
+            const grantsTbody = document.getElementById('grantsTableBody');
+            grantsTbody.innerHTML = '';
+            const grantsData = data.filter(i => i.code === 251125 || i.code === 263112);
+            grantsData.forEach(i => {
+                const util = ((i.sumExp / i.rev) * 100).toFixed(1);
+                grantsTbody.innerHTML += `<tr class="hover:bg-gray-50">
+                    <td class="p-2.5 font-bold">${i.code}</td>
+                    <td class="p-2.5 font-medium">${i.desc}</td>
+                    <td class="p-2.5 text-right font-semibold">${fmt(i.rev)}</td>
+                    <td class="p-2.5 text-right text-blue-700 font-semibold">${fmt(i.actual)}</td>
+                    <td class="p-2.5 text-right text-emerald-700 font-semibold">${fmt(i.bal)}</td>
+                    <td class="p-2.5 text-center font-bold">${util}%</td>
+                    <td class="p-2.5 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px]">Verified Disbursement</span></td>
+                </tr>`;
+            });
+
+            // 3. Scholarship & Tertiary Table
+            const schTbody = document.getElementById('scholarshipTableBody');
+            schTbody.innerHTML = '';
+            const schData = data.filter(i => i.code === 272142 || i.code === 272143 || i.code === 282151);
+            schData.forEach(i => {
+                const util = ((i.sumExp / i.rev) * 100).toFixed(1);
+                let badge = '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px]">Active</span>';
+                if (i.po > 0 || i.pr > 0) {
+                    badge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px]">PR/PO Pending</span>';
+                }
+                schTbody.innerHTML += `<tr class="hover:bg-gray-50">
+                    <td class="p-2.5 font-bold">${i.code}</td>
+                    <td class="p-2.5 font-medium">${i.desc}</td>
+                    <td class="p-2.5 text-right font-semibold">${fmt(i.rev)}</td>
+                    <td class="p-2.5 text-right text-blue-700">${fmt(i.actual)}</td>
+                    <td class="p-2.5 text-right text-amber-700 font-semibold">${fmt(i.po + i.pr)}</td>
+                    <td class="p-2.5 text-right text-emerald-700 font-semibold">${fmt(i.bal)}</td>
+                    <td class="p-2.5 text-center font-bold">${util}%</td>
+                    <td class="p-2.5 text-center">${badge}</td>
+                </tr>`;
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active-tab'));
+            
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('active-tab');
+        }
+
+        // Initialize Dashboard on Page Load
+        window.onload = function() {
+            applyFilters();
+        };
+    </script>
+</body>
+</html>
